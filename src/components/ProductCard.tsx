@@ -14,15 +14,21 @@ export function ProductCard({ product }: { product: Product }) {
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card rounded-xl border border-border p-3 flex flex-col relative overflow-hidden"
+      whileHover={{ y: -4, boxShadow: '0 8px 25px -5px hsl(var(--primary) / 0.1)' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className="bg-card rounded-2xl border border-border p-3 flex flex-col relative overflow-hidden cursor-pointer group"
       onClick={() => navigate(`/product/${product.id}`)}
     >
       {product.discount > 0 && (
-        <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-md z-10">
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-lg z-10"
+        >
           {product.discount}% OFF
-        </span>
+        </motion.span>
       )}
-      <div className="flex items-center justify-center h-24 text-5xl mb-2 bg-muted rounded-lg">
+      <div className="flex items-center justify-center h-24 text-5xl mb-2 bg-muted rounded-xl transition-transform duration-300 group-hover:scale-105">
         {product.image}
       </div>
       <p className="text-[11px] text-muted-foreground mb-0.5">{product.quantity}</p>
@@ -44,8 +50,9 @@ export function ProductCard({ product }: { product: Product }) {
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.8 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => addItem(product)}
-                className="bg-primary/10 text-primary border border-primary rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="bg-primary/10 text-primary border border-primary rounded-xl px-3 py-1.5 text-xs font-bold hover:bg-primary hover:text-primary-foreground transition-colors"
               >
                 ADD
               </motion.button>
@@ -55,13 +62,20 @@ export function ProductCard({ product }: { product: Product }) {
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.8 }}
-                className="flex items-center bg-primary rounded-lg overflow-hidden"
+                className="flex items-center bg-primary rounded-xl overflow-hidden shadow-md"
               >
-                <button onClick={() => updateQuantity(product.id, qty - 1)} className="text-primary-foreground px-2 py-1.5">
+                <button onClick={() => updateQuantity(product.id, qty - 1)} className="text-primary-foreground px-2 py-1.5 hover:bg-primary-foreground/10 transition-colors">
                   <Minus size={14} />
                 </button>
-                <span className="text-primary-foreground text-xs font-bold min-w-[20px] text-center">{qty}</span>
-                <button onClick={() => updateQuantity(product.id, qty + 1)} className="text-primary-foreground px-2 py-1.5">
+                <motion.span
+                  key={qty}
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  className="text-primary-foreground text-xs font-bold min-w-[20px] text-center"
+                >
+                  {qty}
+                </motion.span>
+                <button onClick={() => updateQuantity(product.id, qty + 1)} className="text-primary-foreground px-2 py-1.5 hover:bg-primary-foreground/10 transition-colors">
                   <Plus size={14} />
                 </button>
               </motion.div>
