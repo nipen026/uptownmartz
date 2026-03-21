@@ -3,7 +3,7 @@ import { ScrollReveal } from './ScrollReveal';
 export function Footer() {
   return (
     <footer className="bg-card border-t border-border py-12 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <ScrollReveal>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>

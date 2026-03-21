@@ -27,7 +27,7 @@ export default function OrderTrackingPage() {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-4">
           <h1 className="text-lg font-display font-bold text-foreground">Order Tracking</h1>
           <p className="text-xs text-muted-foreground">{orderId}</p>
@@ -44,9 +44,9 @@ export default function OrderTrackingPage() {
             transition={{ repeat: Infinity, duration: 2 }}
             className="text-3xl font-display font-bold text-primary"
           >
-            10-15 mins
+            30-45 mins
           </motion.p>
-          <p className="text-xs text-muted-foreground mt-1">Sit back and relax! 🛋️</p>
+          <p className="text-xs text-muted-foreground mt-1">Your order is on its way!</p>
         </motion.div>
 
         <div className="bg-card rounded-3xl border border-border p-6 mb-6">

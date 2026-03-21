@@ -13,10 +13,14 @@ export function CategoryCard({ category }: { category: Category }) {
       className="flex flex-col items-center gap-1.5"
     >
       <div
-        className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-border/30 transition-shadow hover:shadow-md"
+        className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-border/30 transition-shadow hover:shadow-md overflow-hidden"
         style={{ backgroundColor: category.color }}
       >
-        {category.image}
+        {category.image.startsWith('http') || category.image.startsWith('/') ? (
+          <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+        ) : (
+          category.image
+        )}
       </div>
       <span className="text-[11px] font-medium text-foreground text-center leading-tight w-16">
         {category.name}

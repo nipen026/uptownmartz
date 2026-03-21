@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/ic/Downloads/uptownmartz/uptomartz-backend/**)",
+      "Bash(ls /c/Users/ic/Downloads/uptownmartz/uptownmartz/src/components/*.tsx)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm install:*)",
+      "Bash(find . -maxdepth 2 -name .env* -o -name *.env)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\ic\\Downloads\\uptownmartz\\uptomartz-backend\\src\\controller",
+      "C:\\Users\\ic\\Downloads\\uptownmartz\\uptomartz-backend\\src\\routes",
+      "C:\\Users\\ic\\Downloads\\uptownmartz\\uptomartz-backend\\src\\models",
+      "C:\\Users\\ic\\Downloads\\uptownmartz\\uptomartz-backend\\src"
+    ]
+  }
+}

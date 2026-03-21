@@ -12,7 +12,7 @@ const features = [
 export function WhyChooseUs() {
   return (
     <section className="py-16 px-4 bg-accent/30">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <ScrollReveal>
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground text-center mb-2">
             Why Choose QuickCart?

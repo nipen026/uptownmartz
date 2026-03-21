@@ -41,7 +41,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 py-4">
           <button onClick={() => navigate(-1)} className="text-foreground hover:text-primary transition-colors"><ArrowLeft size={22} /></button>
           <h1 className="text-lg font-display font-bold text-foreground">Cart ({totalItems})</h1>
@@ -65,7 +65,7 @@ export default function CartPage() {
                 className="bg-card rounded-2xl border border-border p-3 flex items-center gap-3"
               >
                 <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center text-3xl shrink-0">
-                  {product.image}
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold text-foreground line-clamp-1">{product.name}</h3>
