@@ -89,13 +89,10 @@ export function BottomNav() {
           <div className="flex items-center gap-3 md:gap-5">
             {/* Brand */}
             <div
-              className="flex items-center gap-2 cursor-pointer select-none shrink-0"
+              className="cursor-pointer select-none shrink-0"
               onClick={() => navigate('/')}
             >
-              <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs md:text-sm">U</span>
-              </div>
-              <span className="text-lg md:text-xl font-semibold tracking-tight">UptownMartz</span>
+              <img src="/logo.png" alt="UptownMartz" className="h-8 md:h-10 w-auto object-contain" />
             </div>
 
             {/* Divider - hidden on mobile */}

@@ -7,7 +7,7 @@ export function Footer() {
         <ScrollReveal>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-lg font-display font-bold text-primary mb-3">QuickCart</h3>
+              <img src="/logo.png" alt="UptownMartz" className="h-10 w-auto object-contain mb-3" />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 India's fastest grocery delivery. Fresh groceries at your doorstep in 10 minutes.
               </p>
@@ -41,7 +41,7 @@ export function Footer() {
           </div>
         </ScrollReveal>
         <div className="border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">© 2026 QuickCart. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© 2026 UptownMartz. All rights reserved.</p>
           <div className="flex gap-4 text-lg">
             <span className="cursor-pointer hover:scale-110 transition-transform">📸</span>
             <span className="cursor-pointer hover:scale-110 transition-transform">🐦</span>
