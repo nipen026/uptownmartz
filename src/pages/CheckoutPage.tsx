@@ -9,31 +9,97 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ApiAddress } from '@/types';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useTranslation } from 'react-i18next';
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => { open: () => void };
-  }
-}
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
-      resolve(true);
-      return;
+const emptyForm = { label: '', name: '', phone: '', address: '', city: '', district: '' };
+
+// Inner Stripe payment form — must live inside <Elements>
+function StripePaymentForm({
+  orderId,
+  totalPrice,
+  onSuccess,
+  onCancel,
+}: {
+  orderId: number;
+  totalPrice: number;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
+
+  const handleConfirm = async () => {
+    if (!stripe || !elements) return;
+    setLoading(true);
+
+    const result = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/order-success/${orderId}`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (result.error) {
+      toast({ title: 'Payment Failed', description: result.error.message, variant: 'destructive' });
+      setLoading(false);
+    } else if (result.paymentIntent?.status === 'succeeded') {
+      try {
+        await paymentApi.verify({ paymentIntentId: result.paymentIntent.id, orderId });
+        toast({ title: 'Payment Successful!', description: 'Your order has been placed.' });
+        onSuccess();
+      } catch {
+        toast({ title: 'Verification Failed', description: 'Please contact support.', variant: 'destructive' });
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
     }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
+  };
 
-const emptyForm = { label: '', name: '', phone: '', address: '', city: '', pincode: '' };
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card rounded-2xl border border-primary/30 p-5 mb-4 space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-foreground">{t('checkout.payment_details')}</h3>
+        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground" disabled={loading}>
+          <X size={18} />
+        </button>
+      </div>
+      <PaymentElement />
+      <button
+        onClick={handleConfirm}
+        disabled={!stripe || loading}
+        className={cn(
+          'w-full bg-primary text-primary-foreground rounded-2xl py-3.5 text-sm font-bold transition-opacity',
+          (!stripe || loading) && 'opacity-70'
+        )}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>⏳</motion.span>
+            {t('checkout.processing')}
+          </span>
+        ) : (
+          t('checkout.confirm_payment', { total: totalPrice })
+        )}
+      </button>
+    </motion.div>
+  );
+}
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { items, totalPrice, deliveryFee, couponDiscount, clearCart, isLoading } = useCart();
   const { isAuthenticated, user } = useAuth();
   const createOrder = useCreateOrder();
@@ -45,15 +111,15 @@ export default function CheckoutPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [formSaving, setFormSaving] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<number | null>(null);
 
-  // Load addresses from API
   useEffect(() => {
     if (isAuthenticated) {
       setAddressLoading(true);
       addressApi.getAll()
         .then((data) => {
           setAddresses(data);
-          // Auto-select default or first address
           const def = data.find(a => a.isDefault) || data[0];
           if (def) setSelectedAddress(def.id);
         })
@@ -65,8 +131,8 @@ export default function CheckoutPage() {
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
 
   const handleAddAddress = async () => {
-    if (!formData.label || !formData.name || !formData.phone || !formData.address || !formData.city || !formData.pincode) {
-      toast({ title: 'Missing Fields', description: 'Please fill all address fields.', variant: 'destructive' });
+    if (!formData.label || !formData.name || !formData.phone || !formData.address || !formData.city || !formData.district) {
+      toast({ title: t('checkout.missing_fields'), description: t('checkout.fill_address_fields'), variant: 'destructive' });
       return;
     }
     setFormSaving(true);
@@ -79,74 +145,13 @@ export default function CheckoutPage() {
       setSelectedAddress(newAddr.id);
       setShowAddForm(false);
       setFormData(emptyForm);
-      toast({ title: 'Address Added', description: 'New address saved and selected.' });
+      toast({ title: t('checkout.address_added'), description: t('checkout.address_saved') });
     } catch (error) {
       toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to save address', variant: 'destructive' });
     } finally {
       setFormSaving(false);
     }
   };
-
-  const handleRazorpayPayment = useCallback(async () => {
-    setLoading(true);
-    try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        toast({ title: 'Error', description: 'Failed to load payment gateway. Please try again.', variant: 'destructive' });
-        setLoading(false);
-        return;
-      }
-
-      const orderData = await paymentApi.createOrder();
-
-      const options = {
-        key: orderData.key || import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'UpTownMartz',
-        description: 'Grocery Order Payment',
-        order_id: orderData.razorpayOrderId,
-        prefill: {
-          name: user?.name || '',
-          email: user?.email || '',
-          contact: user?.phone || '',
-        },
-        theme: { color: '#16a34a' },
-        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-          try {
-            await paymentApi.verify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: orderData.orderId,
-            });
-            clearCart();
-            toast({ title: 'Payment Successful!', description: 'Your order has been placed.' });
-            navigate(`/order-success/${orderData.orderId}`);
-          } catch {
-            toast({ title: 'Payment Verification Failed', description: 'Please contact support.', variant: 'destructive' });
-          }
-          setLoading(false);
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            toast({ title: 'Payment Cancelled', description: 'You can try again or choose Cash on Delivery.' });
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      toast({
-        title: 'Payment Error',
-        description: error instanceof Error ? error.message : 'Something went wrong',
-        variant: 'destructive',
-      });
-      setLoading(false);
-    }
-  }, [user, clearCart, navigate]);
 
   const handleCODOrder = useCallback(async () => {
     setLoading(true);
@@ -178,10 +183,23 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (paymentMethod === 'online') {
-      await handleRazorpayPayment();
-    } else {
+    if (paymentMethod === 'cod') {
       await handleCODOrder();
+    } else {
+      setLoading(true);
+      try {
+        const data = await paymentApi.createOrder();
+        setClientSecret(data.clientSecret);
+        setCurrentOrderId(data.orderId);
+      } catch (error) {
+        toast({
+          title: 'Payment Error',
+          description: error instanceof Error ? error.message : 'Failed to initialize payment',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -195,21 +213,21 @@ export default function CheckoutPage() {
       <div className="max-w-6xl mx-auto px-4">
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 py-4">
           <button onClick={() => navigate(-1)} className="text-foreground hover:text-primary transition-colors"><ArrowLeft size={22} /></button>
-          <h1 className="text-lg font-display font-bold text-foreground">Checkout</h1>
+          <h1 className="text-lg font-display font-bold text-foreground">{t('checkout.title')}</h1>
         </motion.div>
 
         {!isAuthenticated && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-accent/50 rounded-2xl p-3 flex items-center gap-2 mb-4 text-xs text-accent-foreground border border-accent">
             <span className="text-lg">👤</span>
             <span className="font-medium">
-              <button onClick={() => navigate('/login')} className="text-primary font-bold underline">Login</button> to place your order and track delivery
+              <button onClick={() => navigate('/login')} className="text-primary font-bold underline">{t('checkout.login_link')}</button> {t('checkout.login_prompt')}
             </span>
           </motion.div>
         )}
 
         {/* Delivery Address */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-          <h3 className="text-sm font-bold text-foreground mb-2">Delivery Address</h3>
+          <h3 className="text-sm font-bold text-foreground mb-2">{t('checkout.delivery_address')}</h3>
 
           {addressLoading ? (
             <div className="space-y-2">
@@ -237,17 +255,16 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">{addr.label}</p>
                       {addr.isDefault && (
-                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Default</span>
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{t('checkout.default')}</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">{addr.name} | {addr.phone}</p>
-                    <p className="text-xs text-muted-foreground">{addr.address}, {addr.city} - {addr.pincode}</p>
+                    <p className="text-xs text-muted-foreground">{addr.address}, {addr.district}, {addr.city}</p>
                   </div>
                   {selectedAddress === addr.id && <Check size={18} className="text-primary mt-0.5" />}
                 </motion.button>
               ))}
 
-              {/* Add New Address Button */}
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowAddForm(true)}
@@ -256,98 +273,126 @@ export default function CheckoutPage() {
                 <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center">
                   <Plus size={16} className="text-primary" />
                 </div>
-                <p className="text-sm font-medium text-primary">Add New Address</p>
+                <p className="text-sm font-medium text-primary">{t('checkout.add_address')}</p>
               </motion.button>
             </div>
           )}
         </motion.div>
 
-        {/* Payment Method */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
-          <h3 className="text-sm font-bold text-foreground mb-2">Payment Method</h3>
-          <div className="space-y-2">
-            {[
-              { key: 'online' as const, icon: CreditCard, title: 'Pay Online (Razorpay)', desc: 'UPI, Card, Wallet, Net Banking' },
-              { key: 'cod' as const, icon: Banknote, title: 'Cash on Delivery', desc: 'Pay when your order arrives' },
-            ].map(m => (
-              <motion.button
-                key={m.key}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setPaymentMethod(m.key)}
-                className={cn(
-                  'w-full text-left bg-card rounded-2xl border p-4 flex items-center gap-3 transition-all',
-                  paymentMethod === m.key ? 'border-primary bg-accent/50 shadow-sm' : 'border-border'
-                )}
-              >
-                <m.icon size={18} className={paymentMethod === m.key ? 'text-primary' : 'text-muted-foreground'} />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">{m.title}</p>
-                  <p className="text-[11px] text-muted-foreground">{m.desc}</p>
-                </div>
-                {paymentMethod === m.key && <Check size={18} className="text-primary" />}
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
+        {/* Stripe Payment Element — shown after creating PaymentIntent */}
+        {clientSecret && currentOrderId && (
+          <Elements
+            stripe={stripePromise}
+            options={{
+              clientSecret,
+              appearance: { theme: 'stripe', variables: { colorPrimary: '#16a34a' } },
+            }}
+          >
+            <StripePaymentForm
+              orderId={currentOrderId}
+              totalPrice={totalPrice}
+              onSuccess={() => {
+                clearCart();
+                navigate(`/order-success/${currentOrderId}`);
+              }}
+              onCancel={() => {
+                setClientSecret(null);
+                setCurrentOrderId(null);
+              }}
+            />
+          </Elements>
+        )}
+
+        {/* Payment Method — hidden once Stripe form is showing */}
+        {!clientSecret && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
+            <h3 className="text-sm font-bold text-foreground mb-2">{t('checkout.payment_method')}</h3>
+            <div className="space-y-2">
+              {[
+                { key: 'online' as const, icon: CreditCard, title: t('checkout.pay_online'), desc: t('checkout.pay_online_sub') },
+                { key: 'cod' as const, icon: Banknote, title: t('checkout.cod'), desc: t('checkout.cod_sub') },
+              ].map(m => (
+                <motion.button
+                  key={m.key}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPaymentMethod(m.key)}
+                  className={cn(
+                    'w-full text-left bg-card rounded-2xl border p-4 flex items-center gap-3 transition-all',
+                    paymentMethod === m.key ? 'border-primary bg-accent/50 shadow-sm' : 'border-border'
+                  )}
+                >
+                  <m.icon size={18} className={paymentMethod === m.key ? 'text-primary' : 'text-muted-foreground'} />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{m.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{m.desc}</p>
+                  </div>
+                  {paymentMethod === m.key && <Check size={18} className="text-primary" />}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Order Summary */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card rounded-2xl border border-border p-4 mb-4">
-          <h3 className="text-sm font-bold text-foreground mb-3">Order Summary</h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">{t('checkout.order_summary')}</h3>
           <div className="space-y-1.5 text-sm">
             {items.map(({ product, quantity }) => (
               <div key={product.id} className="flex justify-between text-muted-foreground">
                 <span className="line-clamp-1 flex-1 mr-2">{product.name} × {quantity}</span>
-                <span>₹{product.price * quantity}</span>
+                <span>HK${product.price * quantity}</span>
               </div>
             ))}
             <div className="border-t border-border pt-2 mt-2 flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="text-foreground">₹{subtotal}</span>
+              <span className="text-muted-foreground">{t('checkout.subtotal')}</span>
+              <span className="text-foreground">HK${subtotal}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Delivery</span>
+              <span className="text-muted-foreground">{t('checkout.delivery')}</span>
               <span className={deliveryFee === 0 ? 'text-primary font-medium' : 'text-foreground'}>
-                {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                {deliveryFee === 0 ? t('common.free') : `HK$${deliveryFee}`}
               </span>
             </div>
             {couponDiscount > 0 && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Discount</span>
-                <span className="text-primary">-₹{couponDiscount}</span>
+                <span className="text-muted-foreground">{t('checkout.discount')}</span>
+                <span className="text-primary">-HK${couponDiscount}</span>
               </div>
             )}
             <div className="border-t border-border pt-2 flex justify-between font-bold text-foreground">
-              <span>Total</span>
-              <span>₹{totalPrice}</span>
+              <span>{t('checkout.total')}</span>
+              <span>HK${totalPrice}</span>
             </div>
           </div>
         </motion.div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3 justify-center">
           <Shield size={14} className="text-primary" />
-          <span>100% secure payment. Your data is protected.</span>
+          <span>{t('checkout.secure')}</span>
         </div>
 
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handlePlaceOrder}
-          disabled={loading}
-          className={cn(
-            'w-full bg-primary text-primary-foreground rounded-2xl py-4 text-sm font-bold shadow-lg transition-opacity',
-            loading && 'opacity-70'
-          )}
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>⏳</motion.span>
-              Processing...
-            </span>
-          ) : paymentMethod === 'online' ? (
-            `Pay ₹${totalPrice} with Razorpay`
-          ) : (
-            `Place Order — ₹${totalPrice}`
-          )}
-        </motion.button>
+        {!clientSecret && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handlePlaceOrder}
+            disabled={loading}
+            className={cn(
+              'w-full bg-primary text-primary-foreground rounded-2xl py-4 text-sm font-bold shadow-lg transition-opacity',
+              loading && 'opacity-70'
+            )}
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>⏳</motion.span>
+                {t('checkout.processing')}
+              </span>
+            ) : paymentMethod === 'online' ? (
+              t('checkout.pay_stripe', { total: totalPrice })
+            ) : (
+              t('checkout.place_order', { total: totalPrice })
+            )}
+          </motion.button>
+        )}
       </div>
 
       {/* Add New Address Modal */}
@@ -368,7 +413,7 @@ export default function CheckoutPage() {
               className="bg-card rounded-3xl border border-border p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-display font-bold text-foreground">Add New Address</h3>
+                <h3 className="text-lg font-display font-bold text-foreground">{t('checkout.add_address')}</h3>
                 <button onClick={() => setShowAddForm(false)} className="text-muted-foreground hover:text-foreground">
                   <X size={20} />
                 </button>
@@ -376,9 +421,9 @@ export default function CheckoutPage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-foreground block mb-1">Label</label>
+                  <label className="text-sm font-medium text-foreground block mb-1">{t('checkout.label')}</label>
                   <div className="flex gap-2">
-                    {['Home', 'Office', 'Other'].map(l => (
+                    {[t('checkout.home_label'), t('checkout.office_label'), t('checkout.other_label')].map(l => (
                       <button
                         key={l}
                         onClick={() => setFormData(f => ({ ...f, label: l }))}
@@ -393,55 +438,54 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground block mb-1">Full Name</label>
+                  <label className="text-sm font-medium text-foreground block mb-1">{t('checkout.full_name')}</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData(f => ({ ...f, name: e.target.value }))}
                     className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="John Doe"
+                    placeholder="Chan Tai Man"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground block mb-1">Phone Number</label>
+                  <label className="text-sm font-medium text-foreground block mb-1">{t('checkout.phone')}</label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))}
                     className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="+91 98765 43210"
+                    placeholder="+852 9XXX XXXX"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground block mb-1">Address</label>
+                  <label className="text-sm font-medium text-foreground block mb-1">{t('checkout.street_address')}</label>
                   <input
                     type="text"
                     value={formData.address}
                     onChange={e => setFormData(f => ({ ...f, address: e.target.value }))}
                     className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="42, Green Park Extension"
+                    placeholder="Flat 12A, Tower 1, 88 Nathan Road"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium text-foreground block mb-1">City</label>
+                    <label className="text-sm font-medium text-foreground block mb-1">{t('checkout.district')}</label>
+                    <input
+                      type="text"
+                      value={formData.district}
+                      onChange={e => setFormData(f => ({ ...f, district: e.target.value }))}
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Tsim Sha Tsui"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-1">{t('checkout.area')}</label>
                     <input
                       type="text"
                       value={formData.city}
                       onChange={e => setFormData(f => ({ ...f, city: e.target.value }))}
                       className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="New Delhi"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground block mb-1">Pincode</label>
-                    <input
-                      type="text"
-                      value={formData.pincode}
-                      onChange={e => setFormData(f => ({ ...f, pincode: e.target.value }))}
-                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="110016"
-                      maxLength={6}
+                      placeholder="Kowloon"
                     />
                   </div>
                 </div>
@@ -452,7 +496,7 @@ export default function CheckoutPage() {
                 disabled={formSaving}
                 className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 text-sm font-bold mt-5 disabled:opacity-60"
               >
-                {formSaving ? 'Saving...' : 'Save & Select Address'}
+                {formSaving ? t('checkout.saving') : t('checkout.save_address')}
               </button>
             </motion.div>
           </motion.div>

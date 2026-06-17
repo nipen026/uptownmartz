@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion';
-
-const banners = [
-  { id: 1, emoji: '⚡', title: 'Flash Deal!', subtitle: 'Up to 50% off on fruits', bg: 'bg-accent' },
-  { id: 2, emoji: '🆓', title: 'Free Delivery', subtitle: 'On orders above ₹199', bg: 'bg-secondary/15' },
-  { id: 3, emoji: '🎉', title: 'New User?', subtitle: 'Use code FIRST100 for ₹100 off', bg: 'bg-primary/10' },
-];
+import { useTranslation } from 'react-i18next';
 
 export function PromoBanners() {
+  const { t } = useTranslation();
+
+  const banners = [
+    { id: 1, emoji: '⚡', title: t('promo.flash_deal_title'), subtitle: t('promo.flash_deal_sub'), bg: 'bg-accent' },
+    { id: 2, emoji: '🆓', title: t('promo.free_delivery_title'), subtitle: t('promo.free_delivery_sub'), bg: 'bg-secondary/15' },
+    { id: 3, emoji: '🎉', title: t('promo.new_user_title'), subtitle: t('promo.new_user_sub'), bg: 'bg-primary/10' },
+  ];
+
   return (
     <div className="flex gap-3 overflow-x-auto no-scrollbar px-1 py-1">
       {banners.map((b, i) => (

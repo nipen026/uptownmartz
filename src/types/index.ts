@@ -68,11 +68,34 @@ export interface ApiAddress {
   phone: string;
   address: string;
   city: string;
-  pincode: string;
+  district: string;
   isDefault: boolean;
   UserId: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ApiAdminUser {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  createdAt: string;
+  Orders?: { id: number; total: number; status: string }[];
+}
+
+export interface ApiCoupon {
+  id: number;
+  code: string;
+  type: 'fixed' | 'percentage';
+  value: number;
+  minOrderValue: number;
+  usageLimit: number | null;
+  usedCount: number;
+  active: boolean;
+  expiresAt: string | null;
+  createdAt: string;
 }
 
 export interface DashboardStats {
@@ -132,7 +155,7 @@ export interface Address {
   name?: string;
   phone?: string;
   city?: string;
-  pincode?: string;
+  district?: string;
 }
 
 // ===== Helpers to convert API types to frontend types =====

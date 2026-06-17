@@ -82,6 +82,9 @@ export const productsApi = {
   create: (formData: FormData) =>
     request<ApiProduct>('/api/products', { method: 'POST', body: formData }),
 
+  update: (id: number, formData: FormData) =>
+    request<ApiProduct>(`/api/products/${id}`, { method: 'PUT', body: formData }),
+
   delete: (id: number) =>
     request<{ message: string }>(`/api/products/${id}`, { method: 'DELETE' }),
 };
@@ -130,13 +133,13 @@ import type { ApiAddress } from '@/types';
 export const addressApi = {
   getAll: () => request<ApiAddress[]>('/api/addresses'),
 
-  create: (data: { label: string; name: string; phone: string; address: string; city: string; pincode: string; isDefault?: boolean }) =>
+  create: (data: { label: string; name: string; phone: string; address: string; city: string; district: string; isDefault?: boolean }) =>
     request<ApiAddress>('/api/addresses', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  update: (id: number, data: Partial<{ label: string; name: string; phone: string; address: string; city: string; pincode: string; isDefault: boolean }>) =>
+  update: (id: number, data: Partial<{ label: string; name: string; phone: string; address: string; city: string; district: string; isDefault: boolean }>) =>
     request<ApiAddress>(`/api/addresses/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -175,28 +178,71 @@ export const dashboardApi = {
 };
 
 // ===== Payment API =====
-export interface RazorpayOrderResponse {
+export interface StripeOrderResponse {
+  clientSecret: string;
   orderId: number;
-  razorpayOrderId: string;
-  amount: number;
-  currency: string;
-  key: string;
 }
 
 export interface PaymentVerifyRequest {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
+  paymentIntentId: string;
   orderId: number;
 }
 
 export const paymentApi = {
   createOrder: () =>
-    request<RazorpayOrderResponse>('/api/payment/create-order', { method: 'POST' }),
+    request<StripeOrderResponse>('/api/payment/create-order', { method: 'POST' }),
 
   verify: (data: PaymentVerifyRequest) =>
     request<{ message: string; order: ApiOrder }>('/api/payment/verify', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+};
+
+// ===== Users API (Admin) =====
+import type { ApiAdminUser } from '@/types';
+
+export const usersApi = {
+  getAll: () => request<ApiAdminUser[]>('/api/users'),
+
+  updateRole: (id: number, role: 'admin' | 'user') =>
+    request<ApiAdminUser>(`/api/users/${id}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    }),
+
+  delete: (id: number) =>
+    request<{ message: string }>(`/api/users/${id}`, { method: 'DELETE' }),
+};
+
+// ===== Coupons API =====
+import type { ApiCoupon } from '@/types';
+
+export const couponsApi = {
+  getAll: () => request<ApiCoupon[]>('/api/coupons'),
+
+  create: (data: {
+    code: string;
+    type: 'fixed' | 'percentage';
+    value: number;
+    minOrderValue?: number;
+    usageLimit?: number | null;
+    expiresAt?: string | null;
+  }) =>
+    request<ApiCoupon>('/api/coupons', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  toggle: (id: number) =>
+    request<ApiCoupon>(`/api/coupons/${id}/toggle`, { method: 'PUT' }),
+
+  delete: (id: number) =>
+    request<{ message: string }>(`/api/coupons/${id}`, { method: 'DELETE' }),
+
+  validate: (code: string, total: number) =>
+    request<{ valid: boolean; discount: number; message?: string }>(
+      '/api/coupons/validate',
+      { method: 'POST', body: JSON.stringify({ code, total }) }
+    ),
 };

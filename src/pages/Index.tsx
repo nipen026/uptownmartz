@@ -12,9 +12,11 @@ import { ScrollReveal } from '@/components/ScrollReveal';
 import { useProducts, useCategories, useBestSellers } from '@/hooks/useProducts';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data: categories = [], isLoading: catLoading } = useCategories();
   const { data: products = [], isLoading: prodLoading } = useProducts();
   const { data: bestSellers = [] } = useBestSellers();
@@ -36,11 +38,11 @@ const Index = () => {
             className="text-center mt-6 mb-6"
           >
             <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-3 leading-tight">
-              Fresh Groceries,{' '}
-              <span className="text-gradient-primary">Delivered Fast</span>
+              {t('home.hero_title')}{' '}
+              <span className="text-gradient-primary">{t('home.hero_highlight')}</span>
             </h1>
             <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
-              From fresh produce to daily essentials — order now and get everything delivered right to your doorstep.
+              {t('home.hero_sub')}
             </p>
           </motion.div>
 
@@ -58,9 +60,9 @@ const Index = () => {
       {/* Stats */}
       <section className="py-10 px-4 border-b border-border">
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-3 gap-4">
-          <AnimatedCounter end={50000} suffix="+" label="Happy Customers" />
-          <AnimatedCounter end={10} suffix=" min" label="Avg. Delivery" />
-          <AnimatedCounter end={5000} suffix="+" label="Products" />
+          <AnimatedCounter end={50000} suffix="+" label={t('home.happy_customers')} />
+          <AnimatedCounter end={10} suffix=" min" label={t('home.avg_delivery')} />
+          <AnimatedCounter end={5000} suffix="+" label={t('home.products_count')} />
         </div>
       </section>
 
@@ -72,7 +74,7 @@ const Index = () => {
 
         {/* Categories */}
         <ScrollReveal className="mb-8">
-          <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-4">Shop by Category</h2>
+          <h2 className="text-lg md:text-xl font-display font-bold text-foreground mb-4">{t('home.shop_by_category')}</h2>
           {catLoading ? (
             <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -104,7 +106,7 @@ const Index = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }} className="text-xl">⚡</motion.span>
-                <h2 className="text-lg font-display font-bold text-foreground">Flash Deals</h2>
+                <h2 className="text-lg font-display font-bold text-foreground">{t('home.flash_deals')}</h2>
               </div>
               <span onClick={() => navigate('/products?filter=deals')} className="text-xs text-primary font-semibold cursor-pointer hover:underline">See all →</span>
             </div>
@@ -119,7 +121,7 @@ const Index = () => {
         {/* Recommended */}
         <ScrollReveal className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-bold text-foreground">🔥 Recommended for You</h2>
+            <h2 className="text-lg font-display font-bold text-foreground">{t('home.recommended')}</h2>
             <span onClick={() => navigate('/products?filter=recommended')} className="text-xs text-primary font-semibold cursor-pointer hover:underline">See all →</span>
           </div>
           {prodLoading ? (

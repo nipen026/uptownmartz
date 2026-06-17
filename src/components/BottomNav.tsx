@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { addressApi } from '@/services/api';
 import type { ApiAddress } from '@/types';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function BottomNav() {
   const location = useLocation();
@@ -59,10 +61,12 @@ export function BottomNav() {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  const { t } = useTranslation();
+
   const navLinks = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Search, label: 'Search', path: '/search' },
-    { icon: Clock, label: 'Orders', path: '/orders' },
+    { icon: Home, label: t('nav.home'), path: '/' },
+    { icon: Search, label: t('nav.search'), path: '/search' },
+    { icon: Clock, label: t('nav.orders'), path: '/orders' },
   ];
 
   const handleSelectAddress = (addr: ApiAddress) => {
@@ -73,8 +77,8 @@ export function BottomNav() {
   const deliveryLabel = selectedAddress
     ? `${selectedAddress.address}, ${selectedAddress.city}`
     : isAuthenticated
-      ? 'Select address'
-      : 'Select location';
+      ? t('nav.select_address')
+      : t('nav.select_location');
 
   return (
     <>
@@ -200,7 +204,7 @@ export function BottomNav() {
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                {addr.address}, {addr.city} - {addr.pincode}
+                                {addr.address}, {addr.district}, {addr.city}
                               </p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                                 {addr.name} &middot; {addr.phone}
@@ -249,8 +253,11 @@ export function BottomNav() {
             })}
           </div>
 
-          {/* Right: Cart + Profile (desktop) / Cart + Hamburger (mobile) */}
+          {/* Right: Cart + Language + Profile (desktop) / Cart + Language + Hamburger (mobile) */}
           <div className="flex items-center gap-1.5 md:gap-2">
+            {/* Language Switcher - always visible */}
+            <LanguageSwitcher />
+
             {/* Cart - always visible */}
             <button
               onClick={() => navigate('/cart')}
@@ -414,6 +421,16 @@ export function BottomNav() {
                     </button>
                   );
                 })}
+
+                <div className="h-px bg-border/40 mx-3" />
+
+                {/* Language Switcher row */}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {t('common.language')}
+                  </span>
+                  <LanguageSwitcher />
+                </div>
 
                 <div className="h-px bg-border/40 mx-3" />
 

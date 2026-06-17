@@ -1,10 +1,31 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Package, ShoppingBag, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { paymentApi } from '@/services/api';
+import { useCart } from '@/context/CartContext';
+import { useTranslation } from 'react-i18next';
 
 export default function OrderSuccessPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { clearCart } = useCart();
+  const { t } = useTranslation();
+  const verified = useRef(false);
+
+  // Handle Stripe redirect-based payment return (Alipay HK, WeChat Pay)
+  useEffect(() => {
+    const paymentIntent = searchParams.get('payment_intent');
+    const redirectStatus = searchParams.get('redirect_status');
+
+    if (paymentIntent && redirectStatus === 'succeeded' && orderId && !verified.current) {
+      verified.current = true;
+      paymentApi.verify({ paymentIntentId: paymentIntent, orderId: Number(orderId) })
+        .then(() => clearCart())
+        .catch(() => {});
+    }
+  }, [searchParams, orderId, clearCart]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 pb-20">
@@ -23,7 +44,7 @@ export default function OrderSuccessPage() {
         transition={{ delay: 0.3 }}
         className="text-2xl font-display font-bold text-foreground mb-2 text-center"
       >
-        Order Placed Successfully!
+        {t('success.title')}
       </motion.h1>
 
       <motion.p
@@ -32,7 +53,7 @@ export default function OrderSuccessPage() {
         transition={{ delay: 0.4 }}
         className="text-sm text-muted-foreground mb-1 text-center"
       >
-        Thank you for your order
+        {t('success.thank_you')}
       </motion.p>
 
       {orderId && (
@@ -57,12 +78,12 @@ export default function OrderSuccessPage() {
             <Package size={20} className="text-primary" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Your order is being prepared</p>
-            <p className="text-xs text-muted-foreground">Estimated delivery: 30-45 mins</p>
+            <p className="text-sm font-semibold text-foreground">{t('success.preparing')}</p>
+            <p className="text-xs text-muted-foreground">{t('success.estimated')}</p>
           </div>
         </div>
         <div className="bg-muted rounded-xl p-3 text-xs text-muted-foreground">
-          You can track your order status from the Orders page.
+          {t('success.track_note')}
         </div>
       </motion.div>
 
@@ -77,7 +98,7 @@ export default function OrderSuccessPage() {
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 text-sm font-bold shadow-lg flex items-center justify-center gap-2"
         >
           <Package size={16} />
-          Track Order
+          {t('success.track_order')}
         </button>
 
         <button
@@ -85,14 +106,14 @@ export default function OrderSuccessPage() {
           className="w-full bg-card border border-border text-foreground rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2"
         >
           <ShoppingBag size={16} />
-          View All Orders
+          {t('success.view_orders')}
         </button>
 
         <button
           onClick={() => navigate('/')}
           className="text-sm text-primary font-semibold flex items-center justify-center gap-1"
         >
-          Continue Shopping <ArrowRight size={14} />
+          {t('success.continue_shopping')} <ArrowRight size={14} />
         </button>
       </motion.div>
     </div>

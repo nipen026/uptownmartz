@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { CartItem, Product, apiProductToProduct } from '@/types';
-import { cartApi } from '@/services/api';
+import { cartApi, couponsApi } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
 const CART_STORAGE_KEY = 'uptownmartz_cart';
@@ -16,7 +16,7 @@ interface CartContextType {
   totalPrice: number;
   deliveryFee: number;
   couponDiscount: number;
-  applyCoupon: (code: string) => boolean;
+  applyCoupon: (code: string) => Promise<{ valid: boolean; message?: string }>;
   isLoading: boolean;
   syncCart: () => Promise<void>;
 }
@@ -154,20 +154,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const deliveryFee = subtotal > 199 ? 0 : 25;
+  const deliveryFee = subtotal > 150 ? 0 : 20;
   const totalPrice = Math.max(0, subtotal + deliveryFee - couponDiscount);
 
-  const applyCoupon = useCallback((code: string) => {
-    if (code.toUpperCase() === 'QUICK50') {
-      setCouponDiscount(50);
-      return true;
+  const applyCoupon = useCallback(async (code: string): Promise<{ valid: boolean; message?: string }> => {
+    try {
+      const result = await couponsApi.validate(code, subtotal);
+      if (result.valid) {
+        setCouponDiscount(result.discount);
+      }
+      return result;
+    } catch {
+      return { valid: false, message: 'Failed to validate coupon' };
     }
-    if (code.toUpperCase() === 'FIRST100') {
-      setCouponDiscount(100);
-      return true;
-    }
-    return false;
-  }, []);
+  }, [subtotal]);
 
   return (
     <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, getItemQuantity, totalItems, totalPrice, deliveryFee, couponDiscount, applyCoupon, isLoading, syncCart }}>

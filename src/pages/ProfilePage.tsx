@@ -255,7 +255,7 @@ export default function ProfilePage() {
                         <span className="text-xs text-muted-foreground shrink-0">{order.items.length} items</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-foreground">₹{order.total}</span>
+                        <span className="font-bold text-foreground">HK${order.total}</span>
                         <span className="text-muted-foreground flex items-center gap-1">
                           <Calendar size={10} />
                           {new Date(order.createdAt).toLocaleDateString()}
@@ -305,7 +305,7 @@ export default function ProfilePage() {
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">{addr.name} | {addr.phone}</p>
-                            <p className="text-xs text-muted-foreground">{addr.address}, {addr.city} - {addr.pincode}</p>
+                            <p className="text-xs text-muted-foreground">{addr.address}, {addr.district}, {addr.city}</p>
                           </div>
                         </div>
                       </div>
@@ -435,7 +435,7 @@ export default function ProfilePage() {
                     value={editPhone}
                     onChange={e => setEditPhone(e.target.value)}
                     className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="+91 98765 43210"
+                    placeholder="+852 9XXX XXXX"
                   />
                 </div>
                 <div>

@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./i18n";
 
 // Restore dark mode preference before render to avoid flash
 const savedTheme = localStorage.getItem('theme');

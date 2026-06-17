@@ -107,9 +107,9 @@ export function ProductCard({ product }: { product: Product }) {
         </h3>
         <div className="flex items-center justify-between mt-auto">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-base font-bold text-foreground">₹{product.price}</span>
+            <span className="text-base font-bold text-foreground">HK${product.price}</span>
             {product.discount > 0 && (
-              <span className="text-xs text-muted-foreground line-through">₹{product.originalPrice}</span>
+              <span className="text-xs text-muted-foreground line-through">HK${product.originalPrice}</span>
             )}
           </div>
           {!product.inStock && (

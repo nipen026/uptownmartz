@@ -24,7 +24,7 @@ export function FloatingCart() {
           <span className="text-sm font-bold">{totalItems} item{totalItems > 1 ? 's' : ''}</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-sm font-bold">₹{totalPrice}</span>
+          <span className="text-sm font-bold">HK${totalPrice}</span>
           <span className="text-xs opacity-80 ml-1">→</span>
         </div>
       </motion.button>

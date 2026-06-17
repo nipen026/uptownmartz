@@ -28,7 +28,7 @@ export function AppDownloadBanner() {
                 Get the QuickCart App
               </h2>
               <p className="text-primary-foreground/80 text-sm mb-6 max-w-md mx-auto">
-                Download now and enjoy exclusive app-only deals. Get ₹100 off on your first order!
+                Download now and enjoy exclusive app-only deals. Get HK$50 off on your first order!
               </p>
               <div className="flex items-center justify-center gap-3">
                 <motion.button

@@ -45,7 +45,7 @@ export default function ProductPage() {
   const hasImage = product.image.startsWith('http') || product.image.startsWith('/');
 
   const highlights = [
-    { icon: Truck, label: 'Free delivery', sub: 'Orders above ₹199' },
+    { icon: Truck, label: 'Free delivery', sub: 'Orders above HK$150' },
     { icon: Shield, label: 'Quality assured', sub: '100% genuine products' },
     { icon: RotateCcw, label: 'Easy returns', sub: 'Within 7 days' },
   ];
@@ -155,13 +155,13 @@ export default function ProductPage() {
             {/* Price */}
             <div className="flex items-baseline gap-3 mb-5">
               <span className="text-3xl md:text-4xl font-display font-bold text-foreground">
-                ₹{product.price}
+                HK${product.price}
               </span>
               {product.discount > 0 && (
                 <>
-                  <span className="text-lg text-muted-foreground line-through">₹{product.originalPrice}</span>
+                  <span className="text-lg text-muted-foreground line-through">HK${product.originalPrice}</span>
                   <span className="text-sm font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                    Save ₹{product.originalPrice - product.price}
+                    Save HK${product.originalPrice - product.price}
                   </span>
                 </>
               )}
@@ -202,7 +202,7 @@ export default function ProductPage() {
                     className="w-full bg-primary text-primary-foreground rounded-2xl py-4 flex items-center justify-center gap-2.5 font-bold text-sm shadow-lg hover:opacity-90 transition-opacity"
                   >
                     <ShoppingBag size={18} />
-                    Add to Cart — ₹{product.price}
+                    Add to Cart — HK${product.price}
                   </motion.button>
                 ) : (
                   <motion.div
@@ -236,7 +236,7 @@ export default function ProductPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs text-muted-foreground">Total</p>
-                      <p className="text-lg font-bold text-foreground">₹{product.price * qty}</p>
+                      <p className="text-lg font-bold text-foreground">HK${product.price * qty}</p>
                     </div>
                   </motion.div>
                 )}
